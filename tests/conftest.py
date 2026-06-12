@@ -7,9 +7,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import os
 
 import pytest
+
+# Qt runs headless in CI/containers.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 # A syntactically valid sha256 (all zeros) for building manifest fixtures.
 ZERO_SHA = "0" * 64

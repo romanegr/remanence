@@ -21,7 +21,7 @@ from typing import Any, Iterator
 from ruamel.yaml import YAML
 
 from . import schema
-from .errors import IntegrityError, RemanenceError
+from .errors import RemanenceError
 from .hashing import sha256_file
 
 

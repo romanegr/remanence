@@ -14,7 +14,7 @@ is (re)generated from the original at export time, so the source is never mutate
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import cv2

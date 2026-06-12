@@ -18,10 +18,9 @@ from typing import Sequence
 
 from ..core import preflight
 from ..core.errors import RemanenceError
-from ..core.flux import assess_disk
-from ..core.manifest import ManifestBuilder
 from ..core.pipelines import Pipeline, load_pipelines
-from ..core.runner import RunResult, Runner
+from ..core.runner import Runner
+from ..core.session import DumpSession
 from ..core.staging import create_run
 
 DEFAULT_PIPELINES = "pipelines.yaml"
@@ -36,6 +35,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_check(args)
     if args.command == "dump":
         return _cmd_dump(args)
+    if args.command == "gui":
+        return _cmd_gui(args)
 
     parser.print_help()
     return 0
@@ -64,6 +65,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_dump.add_argument("--platform-hint", default=None)
     p_dump.add_argument("--dry-run", action="store_true",
                         help="resolve and print steps without executing or writing")
+
+    p_gui = sub.add_parser("gui", help="launch the graphical interface")
+    p_gui.add_argument("--pipelines", default=DEFAULT_PIPELINES)
+    p_gui.add_argument("--staging", default=DEFAULT_STAGING)
+    p_gui.add_argument("--catalog", default=None, help="catalogue root for Library mode")
     return parser
 
 
@@ -113,47 +119,28 @@ def _cmd_dump(args: argparse.Namespace) -> int:
 
     run = create_run(args.staging, args.run_id)
     runner = Runner(run, log=print)
-    result = runner.run_pipeline(pipeline, params, device=args.device)
+    session = DumpSession(run, pipeline, captured_by=args.captured_by,
+                          platform_hint=args.platform_hint)
+    result = session.acquire(runner, params, device=args.device, best=True)
 
     if not result.produced:
         print("error: pipeline produced no files", file=sys.stderr)
         return 1
 
-    manifest_path = _write_manifest(run, pipeline, result, args)
+    verdict = session.assessment()
+    print(f"disk assessed: {verdict.state} / {verdict.preservation_level} / {verdict.decode_status}")
+    manifest_path = session.write_manifest()
     print(f"\nwrote {manifest_path}")
     return 0
 
 
-def _write_manifest(run, pipeline: Pipeline, result: RunResult, args) -> Path:
-    has_flux = "flux" in result.produced
-    has_image = "image" in result.produced
-    assessment = assess_disk(
-        has_flux=has_flux,
-        has_image=has_image,
-        decode_attempted=any(p.role == "image" for p in pipeline.produces),
-        decode_succeeded=has_image,
-    )
-
-    builder = ManifestBuilder(
-        run,
-        pipeline_id=pipeline.id,
-        captured_by=args.captured_by,
-        method=pipeline.method,
-        preservation_level=assessment.preservation_level,
-        platform_hint=args.platform_hint,
-        hardware=pipeline.hardware,
-        software=pipeline.software,
-    ).set_decode_status(assessment.decode_status, needs_redecode=assessment.needs_redecode)
-
-    if has_flux:
-        flux = result.produced["flux"]
-        builder.add_flux_variant(flux.temp_name, variant=1, best=True, fmt=flux.format)
-    if has_image:
-        image = result.produced["image"]
-        builder.set_image(image.temp_name, fmt=image.format)
-
-    print(f"disk assessed: {assessment.state} / {assessment.preservation_level} / {assessment.decode_status}")
-    return builder.write()
+def _cmd_gui(args: argparse.Namespace) -> int:
+    try:
+        from ..gui.app import run as run_gui  # lazy: PySide6 only needed for the GUI
+    except ImportError as exc:
+        print(f"error: GUI dependencies unavailable: {exc}", file=sys.stderr)
+        return 1
+    return run_gui(args.pipelines, args.staging, args.catalog)
 
 
 def _parse_params(raw: list[str], pipeline: Pipeline) -> dict:
