@@ -1,0 +1,36 @@
+# Blobs (never in Git) — see CONVENTIONS.md §8
+floppy-blobs/
+blob-index.json
+*.scp
+*.a2r
+*.raw
+*.img
+*.d64
+*.g64
+*.adf
+*.hfe
+*.dsk
+*.woz
+*.nib
+
+# Staging: ignore blobs, keep metadata (photos, listing.txt, label.txt, manifest.yaml)
+staging/**/*.scp
+staging/**/*.img
+
+# Python / tooling
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets / local config
+.env
+*.local.yaml
+
+# Test fixtures need their canned blobs tracked despite the rules above.
+!remanence/fixtures/assets/**
+!tests/data/**
