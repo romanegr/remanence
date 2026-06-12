@@ -1,0 +1,69 @@
+# remanence pipelines registry (example)
+# Validated by schemas/pipelines.schema.json and by `remanence --check`.
+# Hardware steps are skeletons marked `unverified: true` — to be confirmed; they
+# are never executed by remanence. The `fixture` pipeline runs the whole chain
+# with no drive and no disk (SOFTWARE-SPEC.md §F7).
+schema_version: 1
+
+formats:
+  - id: c64-5-25
+    platform: commodore-c64
+    media: "5.25 DD"
+    description: "Commodore 1541, 5.25\" double density"
+
+pipelines:
+  # Real hardware pipeline (skeleton). gw lives in the venv; the d64 decode is
+  # allowed to fail so an undecodable disk closes as flux-only (F3).
+  - id: gw-c64-1541
+    format: c64-5-25
+    method: greaseweazle
+    hardware: "Greaseweazle V4 + 5.25 drive"
+    software: "gw"
+    preservation_level: gold
+    fixture: false
+    requires:
+      tools: ["gw"]
+    parameters:
+      - { name: revolutions, type: int, default: 5, description: "Revolutions per track" }
+      - { name: tracks, type: string, default: "0-39", description: "Track range" }
+    produces:
+      - { role: flux, format: scp }
+      - { role: image, format: d64, optional: true }
+    steps:
+      - id: read-flux
+        description: "Read flux with greaseweazle"
+        action: command
+        argv: ["gw", "read", "--device", "${device}", "--revs", "${param.revolutions}",
+               "--tracks", "c=${param.tracks}", "${out.flux}"]
+        produces: flux
+        unverified: true
+      - id: decode-d64
+        description: "Decode flux to a .d64 image"
+        action: command
+        argv: ["gw", "convert", "${out.flux}", "${out.image}"]
+        produces: image
+        allow_failure: true
+        unverified: true
+
+  # No-hardware fixture pipeline: copies canned assets through the same runner.
+  - id: fixture-c64
+    format: c64-5-25
+    method: greaseweazle
+    hardware: "fixture (no hardware)"
+    software: "fixture"
+    preservation_level: gold
+    fixture: true
+    produces:
+      - { role: flux, format: scp }
+      - { role: image, format: d64, optional: true }
+    steps:
+      - id: read-flux
+        description: "Provide a canned flux capture"
+        action: fixture
+        asset: fixture_disk.scp
+        produces: flux
+      - id: decode-d64
+        description: "Provide a canned decoded image"
+        action: fixture
+        asset: fixture_disk.d64
+        produces: image
