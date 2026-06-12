@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://remanence/schemas/manifest.schema.json",
+  "title": "remanence dump manifest",
+  "description": "Unified manifest: multi-flux and defective-disk capable (CONVENTIONS.md §5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "pipeline_id",
+    "captured_by",
+    "date_captured",
+    "acquisition",
+    "decode_status",
+    "files"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "pipeline_id": { "type": "string", "minLength": 1 },
+    "captured_by": { "type": "string", "minLength": 1 },
+    "date_captured": { "type": "string", "format": "date-time" },
+    "platform_hint": { "$ref": "#/$defs/platform" },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "preservation_level"],
+      "properties": {
+        "method": { "$ref": "#/$defs/acquisition_method" },
+        "hardware": { "type": "string" },
+        "software": { "type": "string" },
+        "revolutions": { "type": "integer", "minimum": 1 },
+        "preservation_level": { "$ref": "#/$defs/preservation_level" }
+      }
+    },
+    "decode_status": { "$ref": "#/$defs/decode_status" },
+    "needs_redecode": { "type": "boolean" },
+    "flux_stable": { "type": "boolean" },
+    "physical": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "media": { "type": "string" },
+        "sides": { "type": "integer", "minimum": 1 },
+        "write_protected": { "type": "boolean" },
+        "condition": { "type": "string" }
+      }
+    },
+    "label_text_file": { "type": ["string", "null"] },
+    "listing_file": { "type": ["string", "null"] },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/file_entry" }
+    },
+    "photos": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/photo_entry" }
+    }
+  },
+  "$defs": {
+    "platform": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "acquisition_method": {
+      "type": "string",
+      "enum": ["greaseweazle", "opencbm", "adtpro", "applesauce"]
+    },
+    "preservation_level": {
+      "type": "string",
+      "enum": ["gold", "silver", "bronze"]
+    },
+    "decode_status": {
+      "type": "string",
+      "enum": ["ok", "failed", "not_attempted"]
+    },
+    "role": {
+      "type": "string",
+      "enum": ["flux", "image", "listing", "photo", "readlog", "checksums"]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "file_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temp_name", "role", "format", "sha256", "upload"],
+      "properties": {
+        "temp_name": { "type": "string", "minLength": 1 },
+        "role": { "$ref": "#/$defs/role" },
+        "format": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "upload": { "type": "boolean" },
+        "tosec_name": { "type": ["string", "null"] },
+        "variant": { "type": "integer", "minimum": 1 },
+        "best": { "type": "boolean" },
+        "read_quality": { "type": "string" }
+      }
+    },
+    "photo_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "type"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["front", "back", "label", "sleeve", "manual", "other"]
+        },
+        "disk_id": { "type": "string" },
+        "note": { "type": "string" },
+        "order": { "type": "integer", "minimum": 0 },
+        "edits": { "type": "object" }
+      }
+    }
+  }
+}

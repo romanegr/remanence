@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remanence"
+version = "0.1.0"
+description = "Floppy disk acquisition (Dump) and catalogue consultation (Library) tool"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "CeCILL-2.1" }
+authors = [{ name = "Romain Negrel" }]
+keywords = ["floppy", "preservation", "greaseweazle", "commodore", "archival"]
+
+# Pinned runtime dependencies (see SOFTWARE-SPEC.md §2).
+dependencies = [
+    "PySide6==6.8.*",
+    "opencv-python==4.10.*",
+    "Pillow==11.*",
+    "numpy==2.*",
+    "ruamel.yaml==0.18.*",
+    "d64==1.*",
+    "jsonschema==4.*",
+    # greaseweazle is installed from a pinned Git revision (no PyPI release).
+    "greaseweazle @ git+https://github.com/keirf/greaseweazle@v1.21",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.*",
+    "pytest-qt==4.*",
+    "ruff==0.6.*",
+]
+
+[project.scripts]
+remanence = "remanence.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["remanence*"]
+
+[tool.setuptools.package-data]
+remanence = ["fixtures/assets/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

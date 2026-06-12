@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://remanence/schemas/pipelines.schema.json",
+  "title": "remanence pipelines registry",
+  "description": "Registry of formats and acquisition pipelines (CONVENTIONS.md §5, SOFTWARE-SPEC.md §F1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "formats", "pipelines"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "formats": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "platform"],
+        "properties": {
+          "id": { "$ref": "#/$defs/slug" },
+          "platform": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "media": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "pipelines": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/pipeline" }
+    }
+  },
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "format", "method", "preservation_level", "produces", "steps"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "format": { "$ref": "#/$defs/slug" },
+        "method": {
+          "type": "string",
+          "enum": ["greaseweazle", "opencbm", "adtpro", "applesauce"]
+        },
+        "hardware": { "type": "string" },
+        "software": { "type": "string" },
+        "preservation_level": {
+          "type": "string",
+          "enum": ["gold", "silver", "bronze"]
+        },
+        "fixture": { "type": "boolean", "default": false },
+        "requires": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tools": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+              "type": { "type": "string", "enum": ["int", "string", "bool"] },
+              "default": {},
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "produces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "format"],
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": ["flux", "image", "listing", "photo", "readlog", "checksums"]
+              },
+              "format": { "type": "string" },
+              "optional": { "type": "boolean", "default": false }
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "action"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "description": { "type": "string" },
+        "action": { "type": "string", "enum": ["command", "fixture"] },
+        "argv": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "asset": { "type": "string" },
+        "produces": {
+          "type": "string",
+          "enum": ["flux", "image", "listing", "photo", "readlog", "checksums"]
+        },
+        "allow_failure": { "type": "boolean", "default": false },
+        "unverified": { "type": "boolean", "default": false }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "const": "command" } } },
+          "then": { "required": ["argv"] }
+        },
+        {
+          "if": { "properties": { "action": { "const": "fixture" } } },
+          "then": { "required": ["asset"] }
+        }
+      ]
+    }
+  }
+}

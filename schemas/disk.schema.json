@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://remanence/schemas/disk.schema.json",
+  "title": "remanence catalogue disk",
+  "description": "Finalised per-disk record in the catalogue (CONVENTIONS.md §5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "disk_id", "acquisition", "files"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "disk_id": { "type": "string", "pattern": "^disk-[0-9]{2,}$" },
+    "media_type": { "type": "string" },
+    "media_label": { "type": "string" },
+    "physical": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "media": { "type": "string" },
+        "sides": { "type": "integer", "minimum": 1 },
+        "write_protected": { "type": "boolean" },
+        "condition": { "type": "string" }
+      }
+    },
+    "label_text": { "type": "string" },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "preservation_level"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["greaseweazle", "opencbm", "adtpro", "applesauce"]
+        },
+        "hardware": { "type": "string" },
+        "software": { "type": "string" },
+        "revolutions": { "type": "integer", "minimum": 1 },
+        "preservation_level": {
+          "type": "string",
+          "enum": ["gold", "silver", "bronze"]
+        },
+        "read_quality": { "type": "string" },
+        "readlog": { "type": "string" }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "format", "sha256", "upload"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["flux", "image", "listing", "photo", "readlog", "checksums"]
+          },
+          "format": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "tosec_name": { "type": ["string", "null"] },
+          "upload": { "type": "boolean" }
+        }
+      }
+    },
+    "listing": { "type": ["string", "null"] },
+    "photos": { "type": "array", "items": { "type": "string" } }
+  }
+}
