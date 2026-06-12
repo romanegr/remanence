@@ -24,12 +24,25 @@ Séparation stricte **cœur / interface** (cf. `CONVENTIONS.md`, source de véri
 
 ## Développement
 
+Prérequis système (Linux) : **Python ≥ 3.11** avec ses en-têtes de développement
+et un compilateur C — `greaseweazle` est installé depuis Git et compile une
+extension C (`Python.h` requis). Sur Debian/Ubuntu :
+
 ```bash
-python -m venv .venv && . .venv/bin/activate
+sudo apt install python3.11-dev build-essential
+```
+
+Puis :
+
+```bash
+python3.11 -m venv .venv && . .venv/bin/activate
 pip install -e '.[dev]'
 pytest
 remanence --check        # validation pipelines.yaml + préflight des outils
 ```
+
+Pour la GUI en environnement sans affichage : `QT_QPA_PLATFORM=offscreen`
+(et le paquet système `libegl1`).
 
 ## Licence
 
