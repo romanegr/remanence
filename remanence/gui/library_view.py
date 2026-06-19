@@ -96,6 +96,13 @@ class LibraryView(QWidget):
         self.blob_index = blob_index or self.blob_index
         self.refresh()
 
+    def apply_settings(self, settings) -> None:
+        """Load the blob index and open the catalogue from settings, if configured."""
+        if settings.blob_index and Path(settings.blob_index).is_file():
+            self.blob_index = BlobIndex.from_file(settings.blob_index)
+        if settings.catalog_root and Path(settings.catalog_root).is_dir():
+            self.open(settings.catalog_root, self.blob_index)
+
     def refresh(self) -> None:
         if self.catalog is None:
             return

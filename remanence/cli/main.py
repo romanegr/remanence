@@ -135,12 +135,22 @@ def _cmd_dump(args: argparse.Namespace) -> int:
 
 
 def _cmd_gui(args: argparse.Namespace) -> int:
+    from ..core.settings import load_settings
+
     try:
         from ..gui.app import run as run_gui  # lazy: PySide6 only needed for the GUI
     except ImportError as exc:
         print(f"error: GUI dependencies unavailable: {exc}", file=sys.stderr)
         return 1
-    return run_gui(args.pipelines, args.staging, args.catalog)
+    # Start from saved settings; CLI flags override paths for this launch.
+    settings = load_settings()
+    if args.pipelines != DEFAULT_PIPELINES:
+        settings.pipelines_path = args.pipelines
+    if args.staging != DEFAULT_STAGING:
+        settings.staging_root = args.staging
+    if args.catalog:
+        settings.catalog_root = args.catalog
+    return run_gui(settings)
 
 
 def _parse_params(raw: list[str], pipeline: Pipeline) -> dict:
