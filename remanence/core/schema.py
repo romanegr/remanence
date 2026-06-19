@@ -32,6 +32,7 @@ SCHEMA_FILES = {
     "contents": "contents.schema.json",
     "disk": "disk.schema.json",
     "pipelines": "pipelines.schema.json",
+    "settings": "settings.schema.json",
 }
 
 

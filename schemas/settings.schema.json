@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://remanence/schemas/settings.schema.json",
+  "title": "remanence application settings",
+  "description": "User preferences (paths and defaults), stored outside the repository.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "pipelines_path": { "type": "string" },
+    "staging_root": { "type": "string" },
+    "catalog_root": { "type": ["string", "null"] },
+    "blob_stock": { "type": ["string", "null"] },
+    "blob_index": { "type": ["string", "null"] },
+    "default_operator": { "type": "string" },
+    "default_device": { "type": "string" },
+    "default_revolutions": { "type": "integer", "minimum": 1 },
+    "default_media_ratio": { "type": "string", "enum": ["3.5", "5.25", "8"] },
+    "jpeg_quality": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "max_long_edge": { "type": "integer", "minimum": 256 },
+    "language": { "type": "string", "enum": ["fr", "en"] },
+    "theme": { "type": "string", "enum": ["system", "light", "dark"] }
+  }
+}

@@ -16,7 +16,7 @@ from remanence.core.images import EditOps
 from remanence.core.manifest import load_manifest
 from remanence.core.pipelines import load_pipelines
 from remanence.core.runner import Runner
-from remanence.core.session import DumpSession
+from remanence.core.session import DumpSession, load_session
 from remanence.core.staging import create_run
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "pipelines.example.yaml"
@@ -74,6 +74,28 @@ def test_flux_only_after_discarding_image(tmp_path):
     manifest = load_manifest(session.write_manifest())
     assert manifest["needs_redecode"] is True
     assert not any(f["role"] == "image" for f in manifest["files"])
+
+
+def test_load_session_resumes_existing_run(tmp_path):
+    # Build and write a run, then reopen it and amend metadata (F9).
+    session, runner = _session(tmp_path)
+    session.acquire(runner, {}, best=True, read_quality="clean")
+    session.acquire(runner, {})
+    session.set_label_text("ORIGINAL LABEL")
+    session.write_manifest()
+
+    registry = load_pipelines(EXAMPLE)
+    resumed = load_session(session.run.path, registry)
+    assert len(resumed.flux) == 2
+    assert resumed.flux.best().read_quality == "clean"
+    assert resumed.image_temp_name is not None
+    assert resumed.label_text_file == "label.txt"
+
+    # Amend and re-write without re-running the dump.
+    resumed.set_physical(condition="amended")
+    manifest = load_manifest(resumed.write_manifest())
+    assert manifest["physical"]["condition"] == "amended"
+    assert len([f for f in manifest["files"] if f["role"] == "flux"]) == 2
 
 
 def test_add_photo_normalises_into_run(tmp_path):

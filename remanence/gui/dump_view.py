@@ -35,7 +35,8 @@ from ..core import preflight
 from ..core.errors import RemanenceError
 from ..core.pipelines import Pipeline, PipelineRegistry, load_pipelines
 from ..core.runner import Runner
-from ..core.session import DumpSession
+from ..core.session import DumpSession, load_session
+from ..core.settings import Settings
 from ..core.staging import create_run
 from ..core.images import EditOps
 from .worker import AcquireWorker, run_in_thread
@@ -362,3 +363,36 @@ class DumpView(QWidget):
 
     def _go_back(self) -> None:
         self.stack.setCurrentIndex(max(0, self.stack.currentIndex() - 1))
+
+    # -- settings / session lifecycle ------------------------------------
+
+    def apply_settings(self, settings: Settings) -> None:
+        """Re-read paths and acquisition defaults from settings, reload registry."""
+        self.registry_path = settings.pipelines_path
+        self.staging_root = settings.staging_root
+        if settings.default_operator and not self.operator_edit.text():
+            self.operator_edit.setText(settings.default_operator)
+        if settings.default_device and not self.device_edit.text():
+            self.device_edit.setText(settings.default_device)
+        self.revs_spin.setValue(settings.default_revolutions)
+        if settings.default_media_ratio and not self.keystone_check.text():
+            self.keystone_check.setText(settings.default_media_ratio)
+        self.load_registry(self.registry_path)
+
+    def reset_session(self) -> None:
+        """Discard the current session and return to the first step (new dump)."""
+        self.session = None
+        self.variant_list.clear()
+        self.photo_list.clear()
+        self.log_view.clear()
+        self.state_label.setText("not started")
+        self.stack.setCurrentIndex(0)
+
+    def resume_run(self, run_path: str | Path) -> None:
+        """Reopen an existing run to amend photos/metadata (SOFTWARE-SPEC.md §F9)."""
+        if self.registry is None:
+            raise RemanenceError("no pipelines registry loaded")
+        self.session = load_session(run_path, self.registry)
+        self._refresh_variants()
+        self._refresh_summary()
+        self.stack.setCurrentIndex(1)

@@ -21,10 +21,10 @@ from . import images
 from .flux import DiskAssessment, FluxSet, assess_disk
 from .hashing import sha256_file
 from .images import EditOps
-from .manifest import ManifestBuilder
-from .pipelines import Pipeline
+from .manifest import ManifestBuilder, load_manifest
+from .pipelines import Pipeline, PipelineRegistry
 from .runner import RunResult, Runner
-from .staging import StagingRun
+from .staging import StagingRun, reopen_run
 
 
 class DumpSession:
@@ -203,3 +203,40 @@ class DumpSession:
             candidate = f"photos/{stem}-{n}.jpg"
             n += 1
         return candidate
+
+
+def load_session(run_path: str | Path, registry: PipelineRegistry) -> DumpSession:
+    """Reopen an existing run and reconstruct its session (SOFTWARE-SPEC.md §F9).
+
+    Reads ``manifest.yaml`` from the run, resolves its pipeline from ``registry``
+    and restores flux variants, the optional image, metadata and photos so the
+    operator can add photos or amend metadata without re-running the dump.
+    """
+    run = reopen_run(run_path)
+    manifest = load_manifest(run.manifest_path)
+    pipeline = registry.get(manifest["pipeline_id"])
+
+    session = DumpSession(
+        run,
+        pipeline,
+        captured_by=manifest["captured_by"],
+        platform_hint=manifest.get("platform_hint"),
+    )
+    session.flux_stable = manifest.get("flux_stable", True)
+    for entry in manifest["files"]:
+        if entry["role"] == "flux":
+            session.flux.add(
+                entry["temp_name"],
+                entry["sha256"],
+                read_quality=entry.get("read_quality"),
+                best=entry.get("best", False),
+            )
+        elif entry["role"] == "image":
+            session.image_temp_name = entry["temp_name"]
+            session.image_format = entry["format"]
+    if "physical" in manifest:
+        session._physical = dict(manifest["physical"])
+    session.label_text_file = manifest.get("label_text_file")
+    session.listing_file = manifest.get("listing_file")
+    session._photos = [dict(p) for p in manifest.get("photos", [])]
+    return session
