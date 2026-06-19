@@ -14,6 +14,8 @@ from ruamel.yaml import YAML
 
 pytest.importorskip("PySide6")
 
+from PySide6.QtCore import Qt  # noqa: E402
+
 from remanence.core.catalog import BlobIndex  # noqa: E402
 from remanence.core.hashing import sha256_file  # noqa: E402
 from remanence.core.manifest import load_manifest  # noqa: E402
@@ -96,12 +98,52 @@ def test_library_view_browse_and_flux(qtbot, tmp_path):
     index = BlobIndex({sha_d64: str(d64), sha_scp: str(scp)})
     view = LibraryView(tmp_path / "catalog", index)
     qtbot.addWidget(view)
-    assert view.item_list.count() == 1
-    view.item_list.setCurrentRow(0)
+    assert view.proxy.rowCount() == 1
+    view.table.selectRow(0)
+    assert view.current_item().title == "Demo Game"
     assert "Demo Game" in view.detail.toPlainText()
     assert "REMANENCE DEMO" in view.listing_view.toPlainText()
     view._verify_integrity()
     assert "OK" in view.integrity_label.text()
+
+
+def test_library_table_filters(qtbot, tmp_path):
+    def _item(slug, title, platform, status, publisher):
+        item_dir = tmp_path / "catalog" / platform / slug
+        _write_yaml(item_dir / "item.yaml", {
+            "schema_version": 1, "status": status, "title": title,
+            "kind": "single_title", "platform": platform, "publisher": publisher,
+            "copyright_status": "freeware", "disks": ["disk-01"],
+        })
+        _write_yaml(item_dir / "disks" / "disk-01.yaml", {
+            "schema_version": 1, "disk_id": "disk-01",
+            "acquisition": {"method": "greaseweazle", "preservation_level": "gold"},
+            "files": [{"role": "image", "format": "d64", "sha256": "0" * 64, "upload": True}],
+        })
+
+    _item("alpha-c64", "Alpha", "commodore-c64", "ready", "Acme")
+    _item("beta-c64", "Beta", "commodore-c64", "draft", "Acme")
+    _item("gamma-apple", "Gamma", "apple-ii", "ready", "Other")
+
+    view = LibraryView(tmp_path / "catalog", BlobIndex({}))
+    qtbot.addWidget(view)
+    assert view.proxy.rowCount() == 3
+
+    view.text_filter.setText("eta")          # matches "Beta" only
+    assert view.proxy.rowCount() == 1
+    view.text_filter.setText("")
+
+    view.proxy.set_platform("apple-ii")
+    assert view.proxy.rowCount() == 1
+    view.proxy.set_platform("Tous")
+
+    view.proxy.set_status("ready")
+    assert view.proxy.rowCount() == 2
+
+    # Sorting by title works (spreadsheet behaviour).
+    view.table.sortByColumn(0, Qt.AscendingOrder)
+    view.table.selectRow(0)
+    assert view.current_item() is not None
 
 
 def test_main_window_constructs_with_settings(qtbot, tmp_path):
